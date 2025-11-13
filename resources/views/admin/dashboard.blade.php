@@ -870,6 +870,136 @@
         .progress-text.completed {
             color: #2d7a3e;
         }
+        
+        /* Custom Confirmation Modal */
+        .confirm-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .confirm-modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .confirm-modal {
+            background: white;
+            border-radius: 25px;
+            padding: 0;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+            overflow: hidden;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .confirm-modal-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+        }
+        
+        .confirm-modal-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2.5rem;
+        }
+        
+        .confirm-modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 0;
+        }
+        
+        .confirm-modal-body {
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .confirm-modal-message {
+            font-size: 1.1rem;
+            color: #5a6c7d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirm-modal-detail {
+            font-size: 0.95rem;
+            color: #8b92a7;
+        }
+        
+        .confirm-modal-footer {
+            padding: 0 2rem 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .confirm-btn {
+            flex: 1;
+            padding: 0.875rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .confirm-btn-cancel {
+            background: #f0f0f0;
+            color: #5a6c7d;
+        }
+        
+        .confirm-btn-cancel:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .confirm-btn-delete {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .confirm-btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
     </style>
 
     {{-- Toast Notifications --}}
@@ -1238,10 +1368,11 @@
                                                 <button class="action-btn-icon edit" data-bs-toggle="modal" data-bs-target="#editClientModal-{{ $client->id }}" title="Edit">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                <form action="{{ route('clients.destroy', $client) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this client?');">
+                                                <form action="{{ route('clients.destroy', $client) }}" method="POST" class="d-inline delete-form">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="action-btn-icon delete" title="Delete">
+                                                    <button type="button" class="action-btn-icon delete" title="Delete" 
+                                                            onclick="showConfirmModal('Are you sure you want to delete {{ $client->name }}?', this.closest('form'))">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
@@ -1302,10 +1433,11 @@
                                         </td>
                                         <td><span class="table-cell-badge primary">{{ ucfirst($member->role) }}</span></td>
                                         <td class="text-center">
-                                            <form action="{{ route('team-members.destroy', $member) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this team member?');">
+                                            <form action="{{ route('team-members.destroy', $member) }}" method="POST" class="d-inline delete-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="action-btn-icon delete" title="Delete">
+                                                <button type="button" class="action-btn-icon delete" title="Delete"
+                                                        onclick="showConfirmModal('Are you sure you want to delete {{ $member->name }}?', this.closest('form'))">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
@@ -2120,5 +2252,67 @@
             });
         </script>
     @endpush
+
+    {{-- Custom Confirmation Modal --}}
+    <div class="confirm-modal-overlay" id="confirmModal">
+        <div class="confirm-modal">
+            <div class="confirm-modal-header">
+                <div class="confirm-modal-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <h3 class="confirm-modal-title">Confirm Delete</h3>
+            </div>
+            <div class="confirm-modal-body">
+                <p class="confirm-modal-message" id="confirmMessage">Are you sure you want to delete this?</p>
+                <p class="confirm-modal-detail">This action cannot be undone.</p>
+            </div>
+            <div class="confirm-modal-footer">
+                <button type="button" class="confirm-btn confirm-btn-cancel" onclick="closeConfirmModal()">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </button>
+                <button type="button" class="confirm-btn confirm-btn-delete" id="confirmDeleteBtn">
+                    <i class="bi bi-trash"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let deleteForm = null;
+
+        function showConfirmModal(message, form) {
+            deleteForm = form;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            deleteForm = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (deleteForm) {
+                deleteForm.submit();
+            }
+            closeConfirmModal();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirmModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConfirmModal();
+            }
+        });
+    </script>
 
 @endsection

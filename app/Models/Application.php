@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Client;
 use App\Models\User;
 
@@ -32,6 +33,21 @@ class Application extends Model
         'tailored_resume' => 'boolean',
         'earning'         => 'float',
     ];
+
+    /**
+     * Boot method to register model events
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Automatically delete resume file when application is deleted
+        static::deleting(function ($application) {
+            if ($application->resume_file && Storage::disk('public')->exists($application->resume_file)) {
+                Storage::disk('public')->delete($application->resume_file);
+            }
+        });
+    }
 
     public function client()
     {
