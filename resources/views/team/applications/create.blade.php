@@ -403,15 +403,35 @@
                         </p>
                     </div>
                 @else
+                    @php
+                        $isPaused = $client->application_status === 'paused' || $task->is_paused;
+                    @endphp
+                    
+                    @if($isPaused)
+                        <div class="alert alert-warning m-3 d-flex align-items-center" style="border-radius: 15px; border-left: 4px solid #ffc107;">
+                            <i class="bi bi-pause-circle-fill me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <strong>Applications Paused</strong><br>
+                                <small>
+                                    @if($client->application_status === 'paused')
+                                        This client is paused. You cannot delete applications until it's resumed.
+                                    @else
+                                        Your task is paused. You cannot delete applications until it's resumed.
+                                    @endif
+                                </small>
+                            </div>
+                        </div>
+                    @endif
+                    
                     <form
+                        id="bulk-delete-form-create"
                         action="{{ route('team.clients.applications.bulk-destroy', $client->id) }}"
                         method="POST"
-                        onsubmit="return confirm('Delete selected applications?');"
                     >
                         @csrf
 
                         <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
-                            <button type="submit" class="btn btn-sm btn-danger rounded-pill">
+                            <button type="button" class="btn btn-sm btn-danger rounded-pill" onclick="confirmBulkDelete()" {{ $isPaused ? 'disabled' : '' }}>
                                 <i class="bi bi-trash me-1"></i> Delete Selected
                             </button>
                             <div class="form-check">
@@ -453,6 +473,7 @@
                                                     class="form-check-input app-checkbox"
                                                     name="application_ids[]"
                                                     value="{{ $app->id }}"
+                                                    {{ $isPaused ? 'disabled' : '' }}
                                                 >
                                             </td>
                                             <td class="small">{{ $date ? $date->format('M d, Y') : '-' }}</td>
@@ -564,5 +585,19 @@
         checkbox.addEventListener('change', toggleResumeUpload);
         toggleResumeUpload(); // initial state
     });
+
+    // Bulk delete confirmation
+    function confirmBulkDelete() {
+        const checkboxes = document.querySelectorAll('input[name="application_ids[]"]:checked');
+        if (checkboxes.length === 0) {
+            alert('Please select at least one application to delete.');
+            return;
+        }
+        
+        const message = `Are you sure you want to delete ${checkboxes.length} application(s)?`;
+        if (confirm(message)) {
+            document.getElementById('bulk-delete-form-create').submit();
+        }
+    }
 </script>
 @endpush

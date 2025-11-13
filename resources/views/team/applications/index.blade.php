@@ -352,6 +352,136 @@
             justify-content: center;
             font-size: 1.3rem;
         }
+        
+        /* Custom Confirmation Modal */
+        .confirm-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .confirm-modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .confirm-modal {
+            background: white;
+            border-radius: 25px;
+            padding: 0;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+            overflow: hidden;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .confirm-modal-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+        }
+        
+        .confirm-modal-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2.5rem;
+        }
+        
+        .confirm-modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 0;
+        }
+        
+        .confirm-modal-body {
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .confirm-modal-message {
+            font-size: 1.1rem;
+            color: #5a6c7d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirm-modal-detail {
+            font-size: 0.95rem;
+            color: #8b92a7;
+        }
+        
+        .confirm-modal-footer {
+            padding: 0 2rem 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .confirm-btn {
+            flex: 1;
+            padding: 0.875rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .confirm-btn-cancel {
+            background: #f0f0f0;
+            color: #5a6c7d;
+        }
+        
+        .confirm-btn-cancel:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .confirm-btn-delete {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .confirm-btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
     </style>
 
     <div class="applications-page">
@@ -392,6 +522,27 @@
                 </div>
             </div>
         </div>
+
+        {{-- Pause Warning --}}
+        @php
+            $isPaused = $client->application_status === 'paused' || $task->is_paused;
+        @endphp
+        
+        @if($isPaused)
+            <div class="alert alert-warning d-flex align-items-center" style="border-radius: 15px; border-left: 4px solid #ffc107;">
+                <i class="bi bi-pause-circle-fill me-3" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>Applications Paused</strong><br>
+                    <small>
+                        @if($client->application_status === 'paused')
+                            This client is paused. You cannot delete applications until it's resumed.
+                        @else
+                            Your task is paused. You cannot delete applications until it's resumed.
+                        @endif
+                    </small>
+                </div>
+            </div>
+        @endif
 
         {{-- Stats Cards --}}
         @php
@@ -456,7 +607,8 @@
                                             <input type="checkbox" 
                                                    class="checkbox-custom application-checkbox" 
                                                    value="{{ $app->id }}"
-                                                   onchange="updateBulkActions()">
+                                                   onchange="updateBulkActions()"
+                                                   {{ $isPaused ? 'disabled' : '' }}>
                                         </td>
                                         <td>
                                             <div style="font-weight: 600; color: #2d3748;">
@@ -520,13 +672,14 @@
                                                 @endif
                                                 <form action="{{ route('team.applications.destroy', $app) }}"
                                                       method="POST"
-                                                      class="d-inline"
-                                                      onsubmit="return confirm('Are you sure you want to delete this application?');">
+                                                      class="d-inline delete-form">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit"
+                                                    <button type="button"
                                                             class="action-btn-icon delete"
-                                                            title="Delete Application">
+                                                            title="{{ $isPaused ? 'Cannot delete while paused' : 'Delete Application' }}"
+                                                            onclick="showConfirmModal('Are you sure you want to delete this application?', this.closest('form'))"
+                                                            {{ $isPaused ? 'disabled style=opacity:0.5;cursor:not-allowed;' : '' }}>
                                                         <i class="bi bi-trash-fill"></i>
                                                     </button>
                                                 </form>
@@ -547,7 +700,7 @@
         <span class="bulk-actions-text">
             <span id="selected-count">0</span> selected
         </span>
-        <button type="button" class="bulk-action-btn delete" onclick="bulkDelete()">
+        <button type="button" class="bulk-action-btn delete" onclick="bulkDelete()" {{ $isPaused ? 'disabled style=opacity:0.5;cursor:not-allowed;' : '' }}>
             <i class="bi bi-trash-fill"></i>
             Delete Selected
         </button>
@@ -614,7 +767,8 @@
 
             const confirmMessage = `Are you sure you want to delete ${ids.length} application(s)? This action cannot be undone.`;
             
-            if (confirm(confirmMessage)) {
+            // Use custom modal instead of confirm
+            showConfirmModal(confirmMessage, null, function() {
                 // Create hidden inputs for each ID
                 const form = document.getElementById('bulk-delete-form');
                 // Clear any existing inputs
@@ -630,7 +784,74 @@
                 });
                 
                 form.submit();
-            }
+            });
         }
+    </script>
+
+    {{-- Custom Confirmation Modal --}}
+    <div class="confirm-modal-overlay" id="confirmModal">
+        <div class="confirm-modal">
+            <div class="confirm-modal-header">
+                <div class="confirm-modal-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <h3 class="confirm-modal-title">Confirm Delete</h3>
+            </div>
+            <div class="confirm-modal-body">
+                <p class="confirm-modal-message" id="confirmMessage">Are you sure you want to delete this?</p>
+                <p class="confirm-modal-detail">This action cannot be undone.</p>
+            </div>
+            <div class="confirm-modal-footer">
+                <button type="button" class="confirm-btn confirm-btn-cancel" onclick="closeConfirmModal()">
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+                </button>
+                <button type="button" class="confirm-btn confirm-btn-delete" id="confirmDeleteBtn">
+                    <i class="bi bi-trash"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let deleteForm = null;
+        let deleteCallback = null;
+
+        function showConfirmModal(message, form, callback) {
+            deleteForm = form;
+            deleteCallback = callback;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            deleteForm = null;
+            deleteCallback = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (deleteForm) {
+                deleteForm.submit();
+            } else if (deleteCallback) {
+                deleteCallback();
+            }
+            closeConfirmModal();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirmModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConfirmModal();
+            }
+        });
     </script>
 @endsection

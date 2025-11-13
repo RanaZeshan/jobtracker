@@ -29,12 +29,13 @@ public function indexByClient(Client $client)
         abort(403);
     }
 
-    // Ensure this client is assigned to this team member
-    $isAssigned = Task::where('assigned_to_id', $user->id)
+    // Get the task for this client and team member
+    $task = Task::where('assigned_to_id', $user->id)
         ->where('client_id', $client->id)
-        ->exists();
+        ->where('is_active', true)
+        ->first();
 
-    if (! $isAssigned) {
+    if (!$task) {
         abort(403); // not allowed to view apps for unassigned client
     }
 
@@ -45,7 +46,7 @@ public function indexByClient(Client $client)
         ->orderByDesc('created_at')
         ->get();
 
-    return view('team.applications.index', compact('client', 'applications'));
+    return view('team.applications.index', compact('client', 'applications', 'task'));
 }
 
 
@@ -63,12 +64,13 @@ public function createForClient(Client $client)
         abort(403);
     }
 
-    // Ensure this client is assigned to this team member
-    $isAssigned = Task::where('assigned_to_id', $user->id)
+    // Get the task for this client and team member
+    $task = Task::where('assigned_to_id', $user->id)
         ->where('client_id', $client->id)
-        ->exists();
+        ->where('is_active', true)
+        ->first();
 
-    if (! $isAssigned) {
+    if (!$task) {
         abort(403); // not allowed to add apps for unassigned client
     }
 
@@ -78,7 +80,7 @@ public function createForClient(Client $client)
         ->orderByDesc('created_at')
         ->get();
 
-    return view('team.applications.create', compact('client', 'applications'));
+    return view('team.applications.create', compact('client', 'applications', 'task'));
 }
 
 
@@ -256,16 +258,19 @@ public function createForClient(Client $client)
         try {
             $row = [
                 $sheetRowKey,                         // Unique id for deletions
-                now()->format('Y-m-d H:i:s'),         // Date
+                       // Date
                 
-                $user->name,                          // Team member
+                
                 $application->job_title,              // Job title
                 $application->company_applied_to,     // Company
+                 $application->source_site,  
                 $application->job_link,               // Job link
-                $application->source_site,            // Source site
+                         // Source site
                 $application->location,               // Location
                 $application->status,                 // Status
-                $application->tailored_resume ? 'Yes' : 'No', // Tailored resume
+               // $application->tailored_resume ? 'Yes' : 'No', // Tailored resume
+                 now()->format('Y-m-d'), 
+                 $user->name,                          // Team member
                 
             ];
 
@@ -298,6 +303,21 @@ public function createForClient(Client $client)
     }
 
     $client = Client::find($application->client_id);
+    
+    // Check if client is paused
+    if ($client && $client->application_status === 'paused') {
+        return back()->with('error', 'Cannot delete applications for a paused client.');
+    }
+    
+    // Check if task is paused
+    $task = Task::where('client_id', $application->client_id)
+        ->where('assigned_to_id', $user->id)
+        ->where('is_active', true)
+        ->first();
+        
+    if ($task && $task->is_paused) {
+        return back()->with('error', 'Cannot delete applications while your task is paused.');
+    }
 
     // Delete from Google Sheet if possible
     if ($client && $client->google_sheet_id && $application->sheet_row_key) {
@@ -339,12 +359,23 @@ public function bulkDestroy(Request $request, Client $client, GoogleSheetsServic
     }
 
     // Ensure this client is assigned to this team member
-    $isAssigned = Task::where('assigned_to_id', $user->id)
+    $task = Task::where('assigned_to_id', $user->id)
         ->where('client_id', $client->id)
-        ->exists();
+        ->where('is_active', true)
+        ->first();
 
-    if (! $isAssigned) {
+    if (!$task) {
         abort(403);
+    }
+    
+    // Check if client is paused
+    if ($client->application_status === 'paused') {
+        return back()->with('error', 'Cannot delete applications for a paused client.');
+    }
+    
+    // Check if task is paused
+    if ($task->is_paused) {
+        return back()->with('error', 'Cannot delete applications while your task is paused.');
     }
 
     $ids = $request->input('application_ids', []);
