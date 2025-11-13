@@ -1,0 +1,600 @@
+@extends('layouts.app')
+
+@section('title', 'Admin Dashboard')
+
+@section('content')
+    <style>
+        .admin-dashboard {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .admin-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 25px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .admin-header::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -5%;
+            width: 350px;
+            height: 350px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        .admin-header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .admin-header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.12);
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        .kpi-card.blue::before { background: linear-gradient(90deg, #4e73df, #224abe); }
+        .kpi-card.green::before { background: linear-gradient(90deg, #1cc88a, #13855c); }
+        .kpi-card.cyan::before { background: linear-gradient(90deg, #36b9cc, #0f6674); }
+        .kpi-card.yellow::before { background: linear-gradient(90deg, #f6c23e, #c6951a); }
+        
+        .kpi-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+        .kpi-card.blue .kpi-icon { background: linear-gradient(135deg, #4e73df, #224abe); }
+        .kpi-card.green .kpi-icon { background: linear-gradient(135deg, #1cc88a, #13855c); }
+        .kpi-card.cyan .kpi-icon { background: linear-gradient(135deg, #36b9cc, #0f6674); }
+        .kpi-card.yellow .kpi-icon { background: linear-gradient(135deg, #f6c23e, #c6951a); }
+        
+        .kpi-label {
+            font-size: 0.85rem;
+            color: #8b92a7;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #2d3748;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .kpi-description {
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+        
+        /* Content Cards */
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        .content-card-header {
+            padding: 1.75rem 2rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .content-card-header h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0;
+        }
+        .content-card-header p {
+            color: #8b92a7;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        /* Modern Table */
+        .modern-table {
+            width: 100%;
+        }
+        .modern-table thead {
+            background: #f8f9ff;
+        }
+        .modern-table thead th {
+            padding: 1.25rem 1.5rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #f5576c;
+            border: none;
+        }
+        .modern-table tbody td {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+        .modern-table tbody tr {
+            transition: all 0.2s ease;
+        }
+        .modern-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+        .modern-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Action Buttons */
+        .action-btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+            color: white;
+        }
+        .action-btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: 2px solid;
+        }
+        .action-btn-icon.pause { background: #fff3e0; border-color: #f57c00; color: #f57c00; }
+        .action-btn-icon.play { background: #e8f5e9; border-color: #388e3c; color: #388e3c; }
+        .action-btn-icon.assign { background: #e3f2fd; border-color: #1976d2; color: #1976d2; }
+        .action-btn-icon.edit { background: #f3e5f5; border-color: #7b1fa2; color: #7b1fa2; }
+        .action-btn-icon.delete { background: #ffebee; border-color: #d32f2f; color: #d32f2f; }
+        .action-btn-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.9rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-badge.active { background: #e8f5e9; color: #388e3c; }
+        .status-badge.paused { background: #fff3e0; color: #f57c00; }
+        
+        /* Toast */
+        .toast-modern {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: white;
+            border-radius: 15px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-modern.success { border-left: 4px solid #10b981; }
+        .toast-modern.error { border-left: 4px solid #ef4444; }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .toast-modern.success .toast-icon { background: #d1fae5; color: #10b981; }
+        .toast-modern.error .toast-icon { background: #fee2e2; color: #ef4444; }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .empty-state-icon {
+            font-size: 4rem;
+            color: #e0e7ff;
+            margin-bottom: 1rem;
+        }
+        .empty-state-text {
+            color: #8b92a7;
+            font-size: 1.1rem;
+        }
+    </style>
+
+    {{-- Toast Notifications --}}
+    @if(session('success'))
+        <div class="toast-modern success" id="toast">
+            <div class="toast-icon">✓</div>
+            <div class="flex-grow-1">
+                <strong>Success!</strong>
+                <div class="small text-muted">{{ session('success') }}</div>
+            </div>
+            <button type="button" class="btn-close" onclick="document.getElementById('toast').remove()"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="toast-modern error" id="toast">
+            <div class="toast-icon">!</div>
+            <div class="flex-grow-1">
+                <strong>Error</strong>
+                @foreach($errors->all() as $error)
+                    <div class="small text-muted">{{ $error }}</div>
+                @endforeach
+            </div>
+            <button type="button" class="btn-close" onclick="document.getElementById('toast').remove()"></button>
+        </div>
+    @endif
+
+    <div class="admin-dashboard">
+        {{-- Header --}}
+        <div class="admin-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1>🎯 Admin Dashboard</h1>
+                    <p>Manage your team, clients, and track all applications</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- KPI Cards --}}
+        @php
+            $totalClients      = $clients->count();
+            $totalTeamMembers  = $teamMembers->count();
+            $totalApplications = 0;
+            $totalEarnings     = 0;
+
+            foreach ($clients as $c) {
+                if ($c->relationLoaded('applications') || method_exists($c, 'applications')) {
+                    $totalApplications += $c->applications->count();
+                    $totalEarnings     += $c->applications->sum('earning');
+                }
+            }
+        @endphp
+
+        <div class="kpi-grid">
+            <div class="kpi-card blue">
+                <div class="kpi-icon">👥</div>
+                <div class="kpi-label">Total Clients</div>
+                <div class="kpi-value">{{ $totalClients }}</div>
+                <div class="kpi-description">Active clients</div>
+            </div>
+            
+            <div class="kpi-card green">
+                <div class="kpi-icon">👨‍💼</div>
+                <div class="kpi-label">Team Members</div>
+                <div class="kpi-value">{{ $totalTeamMembers }}</div>
+                <div class="kpi-description">Active team</div>
+            </div>
+            
+            <div class="kpi-card cyan">
+                <div class="kpi-icon">📄</div>
+                <div class="kpi-label">Applications</div>
+                <div class="kpi-value">{{ $totalApplications }}</div>
+                <div class="kpi-description">Total submitted</div>
+            </div>
+            
+            <div class="kpi-card yellow">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-label">Total Earnings</div>
+                <div class="kpi-value">${{ number_format($totalEarnings, 0) }}</div>
+                <div class="kpi-description">Revenue generated</div>
+            </div>
+        </div>
+
+        {{-- Clients Section --}}
+        <div class="content-card">
+            <div class="content-card-header">
+                <div>
+                    <h3><i class="bi bi-people-fill me-2" style="color: #f5576c;"></i>Clients</h3>
+                    <p>Manage your client database</p>
+                </div>
+                <button class="action-btn primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                    <i class="bi bi-plus-lg me-2"></i>Add Client
+                </button>
+            </div>
+            <div class="content-card-body">
+                @if($clients->isEmpty())
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <div class="empty-state-text">No clients yet. Add your first client to get started!</div>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Contact</th>
+                                    <th>Sheet</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($clients as $client)
+                                    <tr>
+                                        <td>
+                                            <strong class="d-block">{{ $client->name }}</strong>
+                                            <small class="text-muted">ID: #{{ $client->id }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="small">
+                                                @if($client->email)
+                                                    <div><i class="bi bi-envelope me-1"></i>{{ $client->email }}</div>
+                                                @endif
+                                                @if($client->phone)
+                                                    <div><i class="bi bi-telephone me-1"></i>{{ $client->phone }}</div>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if($client->google_sheet_id)
+                                                <a href="https://docs.google.com/spreadsheets/d/{{ $client->google_sheet_id }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-sm btn-outline-success rounded-pill">
+                                                    <i class="bi bi-file-earmark-spreadsheet"></i> View
+                                                </a>
+                                            @else
+                                                <span class="text-muted small">Not linked</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($client->application_status === 'paused')
+                                                <span class="status-badge paused">
+                                                    <i class="bi bi-pause-fill"></i> Paused
+                                                </span>
+                                            @else
+                                                <span class="status-badge active">
+                                                    <i class="bi bi-check-circle-fill"></i> Active
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                @if($client->application_status === 'paused')
+                                                    <form action="{{ route('clients.resume', $client) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="action-btn-icon play" title="Resume">
+                                                            <i class="bi bi-play-fill"></i>
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <form action="{{ route('clients.pause', $client) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="action-btn-icon pause" title="Pause">
+                                                            <i class="bi bi-pause-fill"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                                <button class="action-btn-icon assign" data-bs-toggle="modal" data-bs-target="#assignClientModal-{{ $client->id }}" title="Assign">
+                                                    <i class="bi bi-person-plus"></i>
+                                                </button>
+                                                <button class="action-btn-icon edit" data-bs-toggle="modal" data-bs-target="#editClientModal-{{ $client->id }}" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <form action="{{ route('clients.destroy', $client) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this client?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="action-btn-icon delete" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- Team Members Section --}}
+        <div class="content-card">
+            <div class="content-card-header">
+                <div>
+                    <h3><i class="bi bi-person-workspace me-2" style="color: #f5576c;"></i>Team Members</h3>
+                    <p>Manage your team</p>
+                </div>
+                <button class="action-btn primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
+                    <i class="bi bi-person-plus-fill me-2"></i>Add Member
+                </button>
+            </div>
+            <div class="content-card-body">
+                @if($teamMembers->isEmpty())
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍💼</div>
+                        <div class="empty-state-text">No team members yet. Add your first team member!</div>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($teamMembers as $member)
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $member->name }}</strong>
+                                        </td>
+                                        <td>{{ $member->email }}</td>
+                                        <td><span class="badge bg-primary rounded-pill">{{ ucfirst($member->role) }}</span></td>
+                                        <td class="text-center">
+                                            <form action="{{ route('team-members.destroy', $member) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this team member?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="action-btn-icon delete" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- Application Summary --}}
+        <div class="content-card">
+            <div class="content-card-header">
+                <div>
+                    <h3><i class="bi bi-bar-chart-fill me-2" style="color: #f5576c;"></i>Application Summary</h3>
+                    <p>Overview of applications per client</p>
+                </div>
+            </div>
+            <div class="content-card-body">
+                @if($clients->isEmpty())
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-text">No data available yet</div>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Assigned To</th>
+                                    <th class="text-center">Target</th>
+                                    <th class="text-center">Completed</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($clients as $client)
+                                    @php
+                                        $clientTasks    = $client->tasks;
+                                        $totalTarget    = $clientTasks->sum('target_applications');
+                                        $totalCompleted = $clientTasks->sum('completed_applications');
+                                        $assignedNames = $clientTasks->pluck('assignee.name')->filter()->unique()->values();
+                                        $assignedToText = $assignedNames->isEmpty() ? 'Not assigned' : $assignedNames->join(', ');
+                                    @endphp
+                                    <tr>
+                                        <td><strong>{{ $client->name }}</strong></td>
+                                        <td>{{ $assignedToText }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-dark rounded-pill">{{ $totalTarget }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary rounded-pill">{{ $totalCompleted }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <button class="action-btn-icon assign" data-bs-toggle="modal" data-bs-target="#assignClientModal-{{ $client->id }}" title="Assign">
+                                                    <i class="bi bi-person-plus"></i>
+                                                </button>
+                                                <a href="{{ route('admin.clients.applications', $client->id) }}" class="action-btn-icon edit" title="View Applications">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+                                                ? 'Not assigned'
+                                                : $assignedNames->join(', ');
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $client->name }}</td>
+                                            <td>{{ $assignedToText }}</td>
+                                            <td>{{ $totalTarget }}</td>
+                                            <td>{{ $totalCompleted }}</td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex gap-2">
+                                                    {{-- Quick assign shortcut --}}
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-success rounded-pill"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#assignClientModal-{{ $client->id }}"
+                                                        title="Assign client"
+                                                    >
+                                                        <i class="bi bi-person-plus"></i>
+                                                    </button>
+
+                                                    {{-- View applications --}}

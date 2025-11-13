@@ -1,0 +1,922 @@
+@extends('layouts.app')
+
+@section('title', 'Admin Dashboard')
+
+@section('content')
+
+    {{-- SIMPLE ERROR BANNER FOR VALIDATION ERRORS --}}
+    @if($errors->any())
+        <div
+            id="simple-error-banner"
+            style="
+                position: fixed;
+                top: 70px;
+                right: 20px;
+                z-index: 9999;
+                background-color: #dc3545;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                font-size: 14px;
+                max-width: 360px;
+            "
+        >
+            @foreach($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- Page-level success toast --}}
+    @if(session('success'))
+        <div
+            id="page-toast"
+            class="position-fixed top-0 end-0 p-3"
+            style="z-index: 2000; min-width: 260px; max-width: 360px;"
+        >
+            <div
+                class="rounded-3 shadow d-flex align-items-center justify-content-between"
+                style="background-color: #198754; color: #fff; padding: 0.75rem 1rem;"
+            >
+                <span>{{ session('success') }}</span>
+
+                <button
+                    type="button"
+                    id="page-toast-close"
+                    style="border:none;background:transparent;color:#fff;font-weight:bold;margin-left:1rem;cursor:pointer;"
+                >
+                    &times;
+                </button>
+            </div>
+        </div>
+
+        @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var toast = document.getElementById('page-toast');
+                if (!toast) return;
+
+                // auto-hide after 3.5 seconds
+                setTimeout(function () {
+                    if (toast) {
+                        toast.remove();
+                    }
+                }, 3500);
+
+                // close when clicking X
+                var btn = document.getElementById('page-toast-close');
+                if (btn) {
+                    btn.addEventListener('click', function () {
+                        toast.remove();
+                    });
+                }
+            });
+        </script>
+        @endpush
+    @endif
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Admin Dashboard</h2>
+            <small class="text-muted">Overview of clients, team activity & applications</small>
+        </div>
+    </div>
+
+        {{-- ====== TOP METRIC CARDS ====== --}}
+    @php
+        $totalClients      = $clients->count();
+        $totalTeamMembers  = $teamMembers->count();
+        $totalApplications = 0;
+        $totalEarnings     = 0;
+
+        foreach ($clients as $c) {
+            if ($c->relationLoaded('applications') || method_exists($c, 'applications')) {
+                $totalApplications += $c->applications->count();
+                $totalEarnings     += $c->applications->sum('earning');
+            }
+        }
+    @endphp
+
+    <div class="row g-3 mb-4">
+        {{-- Total Clients --}}
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div
+                    class="card-body d-flex justify-content-between align-items-center text-white rounded-3"
+                    style="background: linear-gradient(135deg, #4e73df, #224abe);"
+                >
+                    <div>
+                        <h6 class="text-uppercase small mb-1 opacity-75">Total Clients</h6>
+                        <h2 class="mb-0 fw-bold">{{ $totalClients }}</h2>
+                    </div>
+                    <div
+                        class="rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px;"
+                    >
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Total Team Members --}}
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div
+                    class="card-body d-flex justify-content-between align-items-center text-white rounded-3"
+                    style="background: linear-gradient(135deg, #1cc88a, #13855c);"
+                >
+                    <div>
+                        <h6 class="text-uppercase small mb-1 opacity-75">Team Members</h6>
+                        <h2 class="mb-0 fw-bold">{{ $totalTeamMembers }}</h2>
+                    </div>
+                    <div
+                        class="rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px;"
+                    >
+                        <i class="bi bi-person-workspace fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Total Applications --}}
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div
+                    class="card-body d-flex justify-content-between align-items-center text-white rounded-3"
+                    style="background: linear-gradient(135deg, #36b9cc, #0f6674);"
+                >
+                    <div>
+                        <h6 class="text-uppercase small mb-1 opacity-75">Total Applications</h6>
+                        <h2 class="mb-0 fw-bold">{{ $totalApplications }}</h2>
+                    </div>
+                    <div
+                        class="rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px;"
+                    >
+                        <i class="bi bi-briefcase-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Total Earnings --}}
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div
+                    class="card-body d-flex justify-content-between align-items-center text-white rounded-3"
+                    style="background: linear-gradient(135deg, #f6c23e, #c6951a);"
+                >
+                    <div>
+                        <h6 class="text-uppercase small mb-1 opacity-75">Total Earnings</h6>
+                        <h2 class="mb-0 fw-bold">${{ number_format($totalEarnings, 2) }}</h2>
+                    </div>
+                    <div
+                        class="rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px;"
+                    >
+                        <i class="bi bi-currency-dollar fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    {{-- ====== MAIN ROW: CLIENTS & TEAM MEMBERS ====== --}}
+    <div class="row">
+        {{-- Clients card --}}
+        <div class="col-lg-12 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="mb-0">Clients</h4>
+                            <small class="text-muted">Manage your clients & their sheets</small>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-primary rounded-pill"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addClientModal"
+                        >
+                            <i class="bi bi-plus-lg me-1"></i> Add Client
+                        </button>
+                    </div>
+
+                    @if($clients->isEmpty())
+                        <p class="text-muted mb-0">No clients yet.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>LinkedIn</th>
+                                    <th>Sheet</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($clients as $client)
+                                        <tr>
+                                            <td>{{ $client->id }}</td>
+                                            <td>{{ $client->name }}</td>
+                                            <td>{{ $client->email }}</td>
+                                            <td>{{ $client->phone }}</td>
+                                            <td>
+                                                @if($client->linkedin_url)
+                                                    <a href="{{ $client->linkedin_url }}" target="_blank">
+                                                        View
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small">N/A</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($client->google_sheet_id)
+                                                    <a
+                                                        href="https://docs.google.com/spreadsheets/d/{{ $client->google_sheet_id }}"
+                                                        target="_blank"
+                                                        class="btn btn-sm btn-outline-secondary rounded-pill"
+                                                        title="Open sheet"
+                                                    >
+                                                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small">Not linked</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($client->application_status === 'paused')
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="bi bi-pause-fill"></i> Paused
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle-fill"></i> Active
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex gap-2">
+                                                    {{-- Pause/Resume button --}}
+                                                    @if($client->application_status === 'paused')
+                                                        <form action="{{ route('clients.resume', $client) }}" method="POST">
+                                                            @csrf
+                                                            <button
+                                                                type="submit"
+                                                                class="btn btn-sm btn-success rounded-pill"
+                                                                title="Resume applications"
+                                                            >
+                                                                <i class="bi bi-play-fill"></i>
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <form action="{{ route('clients.pause', $client) }}" method="POST">
+                                                            @csrf
+                                                            <button
+                                                                type="submit"
+                                                                class="btn btn-sm btn-warning rounded-pill"
+                                                                title="Pause applications"
+                                                            >
+                                                                <i class="bi bi-pause-fill"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+
+                                                    {{-- Assign button --}}
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-success rounded-pill"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#assignClientModal-{{ $client->id }}"
+                                                        title="Assign to team member"
+                                                    >
+                                                        <i class="bi bi-person-plus"></i>
+                                                    </button>
+
+                                                    {{-- Edit button --}}
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-primary rounded-pill"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editClientModal-{{ $client->id }}"
+                                                        title="Edit client"
+                                                    >
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+
+                                                    {{-- Delete form --}}
+                                                    <form action="{{ route('clients.destroy', $client) }}"
+                                                          method="POST"
+                                                          onsubmit="return confirm('Delete this client?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button
+                                                            type="submit"
+                                                            class="btn btn-sm btn-outline-danger rounded-pill"
+                                                            title="Delete client"
+                                                        >
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Team Members card --}}
+        <div class="col-lg-12 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="mb-0">Team Members</h4>
+                            <small class="text-muted">People applying on client’s behalf</small>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-secondary rounded-pill"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addTeamMemberModal"
+                        >
+                            <i class="bi bi-person-plus-fill me-1"></i> Add Member
+                        </button>
+                    </div>
+
+                    @if($teamMembers->isEmpty())
+                        <p class="text-muted mb-0">No team members yet.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($teamMembers as $member)
+                                        <tr>
+                                            <td>{{ $member->id }}</td>
+                                            <td>{{ $member->name }}</td>
+                                            <td>{{ $member->email }}</td>
+                                            <td class="text-capitalize">{{ $member->role }}</td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex gap-2">
+                                                    {{-- (Optional) future edit button here --}}
+                                                    {{-- Delete form --}}
+                                                    <form action="{{ route('team-members.destroy', $member) }}"
+                                                          method="POST"
+                                                          onsubmit="return confirm('Delete this team member?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button
+                                                            type="submit"
+                                                            class="btn btn-sm btn-outline-danger rounded-pill"
+                                                            title="Delete team member"
+                                                        >
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ====== CLIENT APPLICATION SUMMARY ====== --}}
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Client Application Summary</h5>
+                        <small class="text-muted">Aggregated across all team members</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if($clients->isEmpty())
+                        <p class="text-muted mb-0">No clients yet.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Assigned To</th>
+                                        <th>Target</th>
+                                        <th>Completed</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($clients as $client)
+                                        @php
+                                            $clientTasks    = $client->tasks;
+                                            $totalTarget    = $clientTasks->sum('target_applications');
+                                            $totalCompleted = $clientTasks->sum('completed_applications');
+
+                                            $assignedNames = $clientTasks
+                                                ->pluck('assignee.name')
+                                                ->filter()
+                                                ->unique()
+                                                ->values();
+
+                                            $assignedToText = $assignedNames->isEmpty()
+                                                ? 'Not assigned'
+                                                : $assignedNames->join(', ');
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $client->name }}</td>
+                                            <td>{{ $assignedToText }}</td>
+                                            <td>{{ $totalTarget }}</td>
+                                            <td>{{ $totalCompleted }}</td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex gap-2">
+                                                    {{-- Quick assign shortcut --}}
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-success rounded-pill"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#assignClientModal-{{ $client->id }}"
+                                                        title="Assign client"
+                                                    >
+                                                        <i class="bi bi-person-plus"></i>
+                                                    </button>
+
+                                                    {{-- View applications --}}
+                                                    <a
+                                                        href="{{ route('admin.clients.applications', $client->id) }}"
+                                                        class="btn btn-sm btn-outline-primary rounded-pill"
+                                                        title="View applications"
+                                                    >
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                       </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ========= MODALS (unchanged logic, just styled with Bootstrap) ========= --}}
+
+    {{-- Add Client Modal --}}
+    <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('clients.store') }}" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Client</h5>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label" for="client_name">Name *</label>
+                            <input type="text" id="client_name" name="name"
+                                   class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="client_email">Email</label>
+                            <input type="email" id="client_email" name="email"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="client_phone">Phone</label>
+                            <input type="text" id="client_phone" name="phone"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="client_linkedin">LinkedIn URL</label>
+                            <input type="url" id="client_linkedin" name="linkedin_url"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="client_notes">Notes</label>
+                            <textarea id="client_notes" name="notes"
+                                      class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="client_sheet_url">
+                                Google Sheet URL or ID (optional)
+                            </label>
+                            <input
+                                type="text"
+                                id="client_sheet_url"
+                                name="sheet_url"
+                                class="form-control @error('sheet_url') is-invalid @enderror"
+                                value="{{ old('sheet_url') }}"
+                            />
+                            @error('sheet_url')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                            <div class="form-text">
+                                Paste a Google Sheet link like
+                                <span class="text-muted">
+                                    https://docs.google.com/spreadsheets/d/XXXXX/edit
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary rounded-pill">
+                            Save Client
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Add Team Member Modal --}}
+    <div class="modal fade" id="addTeamMemberModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('team-members.store') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="_form" value="team_member">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Team Member</h5>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label" for="tm_name">Name *</label>
+                            <input
+                                type="text"
+                                id="tm_name"
+                                name="name"
+                                class="form-control @error('name') is-invalid @enderror"
+                                value="{{ old('name') }}"
+                                required
+                            />
+                            @error('name')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="tm_email">Email *</label>
+                            <input
+                                type="email"
+                                id="tm_email"
+                                name="email"
+                                class="form-control @error('email') is-invalid @enderror"
+                                value="{{ old('email') }}"
+                                required
+                            />
+                            @error('email')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="tm_password">Password *</label>
+                            <input
+                                type="password"
+                                id="tm_password"
+                                name="password"
+                                class="form-control @error('password') is-invalid @enderror"
+                                required
+                            />
+                            @error('password')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                value="1"
+                                id="tm_active"
+                                name="is_active"
+                                {{ old('is_active', '1') ? 'checked' : '' }}
+                            />
+                            <label class="form-check-label" for="tm_active">
+                                Active
+                            </label>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-secondary rounded-pill">
+                            Save Member
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Edit Client Modals --}}
+    @foreach($clients as $client)
+        <div class="modal fade" id="editClientModal-{{ $client->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{ route('clients.update', $client) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Client</h5>
+                            <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                            ></button>
+                        </div>
+                        <div class="modal-body">
+
+                            <div class="mb-3">
+                                <label class="form-label" for="client_name_{{ $client->id }}">Name *</label>
+                                <input
+                                    type="text"
+                                    id="client_name_{{ $client->id }}"
+                                    name="name"
+                                    class="form-control"
+                                    value="{{ old('name', $client->name) }}"
+                                    required
+                                />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="client_email_{{ $client->id }}">Email</label>
+                                <input
+                                    type="email"
+                                    id="client_email_{{ $client->id }}"
+                                    name="email"
+                                    class="form-control"
+                                    value="{{ old('email', $client->email) }}"
+                                />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="client_phone_{{ $client->id }}">Phone</label>
+                                <input
+                                    type="text"
+                                    id="client_phone_{{ $client->id }}"
+                                    name="phone"
+                                    class="form-control"
+                                    value="{{ old('phone', $client->phone) }}"
+                                />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="client_linkedin_{{ $client->id }}">LinkedIn URL</label>
+                                <input
+                                    type="url"
+                                    id="client_linkedin_{{ $client->id }}"
+                                    name="linkedin_url"
+                                    class="form-control"
+                                    value="{{ old('linkedin_url', $client->linkedin_url) }}"
+                                />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="client_notes_{{ $client->id }}">Notes</label>
+                                <textarea
+                                    id="client_notes_{{ $client->id }}"
+                                    name="notes"
+                                    class="form-control"
+                                    rows="3"
+                                >{{ old('notes', $client->notes) }}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                @php
+                                    $sheetUrlValue = old('sheet_url', $client->google_sheet_id
+                                        ? 'https://docs.google.com/spreadsheets/d/'.$client->google_sheet_id.'/edit'
+                                        : ''
+                                    );
+                                @endphp
+                                <label class="form-label" for="client_sheet_url_{{ $client->id }}">
+                                    Google Sheet URL or ID (optional)
+                                </label>
+                                <input
+                                    type="text"
+                                    id="client_sheet_url_{{ $client->id }}"
+                                    name="sheet_url"
+                                    class="form-control @error('sheet_url') is-invalid @enderror"
+                                    value="{{ $sheetUrlValue }}"
+                                />
+                                @error('sheet_url')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror>
+                                <div class="form-text">
+                                    Paste a Google Sheet link or leave blank.
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary rounded-pill">
+                                Update Client
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
+
+    {{-- Assign Client to Team Member Modals --}}
+    @foreach($clients as $client)
+        @php
+            $assignedUserIds = $client->tasks
+                ->pluck('assigned_to_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+        @endphp
+        <div class="modal fade" id="assignClientModal-{{ $client->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{ route('tasks.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="client_id" value="{{ $client->id }}">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                Assign {{ $client->name }} to Team Member
+                            </h5>
+                            <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                            ></button>
+                        </div>
+
+                        <div class="modal-body">
+
+                            <div class="mb-3">
+                                <label for="assigned_to_{{ $client->id }}" class="form-label">
+                                    Team Member *
+                                </label>
+                                <select
+                                    id="assigned_to_{{ $client->id }}"
+                                    name="assigned_to_id"
+                                    class="form-select"
+                                    required
+                                >
+                                    <option value="">-- Select Team Member --</option>
+                                    @foreach($teamMembers as $member)
+                                        @if($member->user)
+                                            @php
+                                                $alreadyAssigned = in_array($member->user_id, $assignedUserIds);
+                                            @endphp
+                                            <option
+                                                value="{{ $member->user_id }}"
+                                                @if($alreadyAssigned) disabled @endif
+                                            >
+                                                {{ $member->name }} ({{ $member->email }})
+                                                @if($alreadyAssigned)
+                                                    - already assigned
+                                                @endif
+                                            </option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="target_apps_{{ $client->id }}">
+                                    Target Applications (optional)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="target_apps_{{ $client->id }}"
+                                    name="target_applications"
+                                    class="form-control"
+                                    min="0"
+                                    value="0"
+                                />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="app_limit_{{ $client->id }}">
+                                    Application Limit (optional)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="app_limit_{{ $client->id }}"
+                                    name="application_limit"
+                                    class="form-control"
+                                    min="1"
+                                    placeholder="No limit"
+                                />
+                                <div class="form-text">
+                                    Maximum number of applications this team member can submit for this client
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="task_desc_{{ $client->id }}">
+                                    Task Description *
+                                </label>
+                                <textarea
+                                    id="task_desc_{{ $client->id }}"
+                                    name="description"
+                                    class="form-control"
+                                    rows="3"
+                                    required
+                                >Apply to jobs for {{ $client->name }}</textarea>
+                            </div>
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button
+                                type="button"
+                                class="btn btn-light rounded-pill"
+                                data-bs-dismiss="modal"
+                            >
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-success rounded-pill">
+                                Assign
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
+
+    @push('scripts')
+        @if(old('_form') === 'team_member' && $errors->any())
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var modalEl = document.getElementById('addTeamMemberModal');
+                    if (modalEl && window.bootstrap && bootstrap.Modal) {
+                        var modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    }
+                });
+            </script>
+        @endif
+    @endpush
+
+@endsection
